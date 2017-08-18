@@ -35,9 +35,41 @@ def test_load_dataset():
 
     ds_id = load_dataset(csv_filename, db)
 
-    columns = db.datasets.find({'_id': ds_id})[0]['columns']
+    dataset = db.datasets.find({'_id': ds_id})[0]
+    headers = dataset['headers']
+    columns = dataset['columns']
 
-    # can you make a meaningful assertion?
+    # These assertions verify many of my assumptions about the nature of a
+    # non-empty dataset.
+
+    # There is at least one header
+    assert len(headers) > 0
+
+    # Each header is a string or None
+    assert all(isinstance(header, basestring) or header is None
+               for header in headers)
+
+    # There is exactly one column per header
+    assert len(headers) == len(columns)
+
+    # There is at least one row
+    assert len(columns[0]) > 0
+
+    # Each column has the same number of rows
+    assert all(len(column) == len(columns[0]) for column in columns)
+
+    # Each item in a given column is of the same type, or None
+    for column in columns:
+        column_type = None
+        for item in column:
+            if item is not None:
+                column_type = type(item)
+                break
+        else:
+            # All None values - I guess that is Ok
+            # Go check the next column
+            continue
+        assert all(type(item) == column_type or item is None for item in column)
 
     # the columns aren't terribly useful.  Modify load_dataset to load common responses as integers so we can
     #   do data manipulation.  For instance, you could change the gender column to male = 0 female = 1 (or something)
