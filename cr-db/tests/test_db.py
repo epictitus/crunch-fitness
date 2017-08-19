@@ -18,6 +18,7 @@ def test_loader():
     """
     Is this the most efficient way that we could load users?  What if the file had 1m users?
     How would/could you benchmark this?
+    -> See my anwers in README.md
     """
 
     load_data(_here + '/data/users.json', settings=settings, clear=True)
@@ -78,6 +79,7 @@ def test_load_dataset():
 
     # how would you manage a much larger dataset?  Does it make sense to store the raw data
     #   in mongo?  What other strategies would you employ if you had 1000s of datasets with 1 million rows per dataset?
+    # -> See my answers in README.md
 
 
 def test_select_with_filter():
@@ -92,6 +94,18 @@ def test_select_with_filter():
        Answer but don't code: what would a generic solution look like to compare any columns containing categories?
 
     """
+    # First clear previous test dataset(s)
+    db.datasets.drop()
+
+    # Load and save S-0-10k
+    csv_filename = _here + '/data/S-O-10k.csv'
+
+    ds_id = load_dataset(csv_filename, db)
+
+    dataset = db.datasets.find({'_id': ds_id})[0]
+    headers = dataset['headers']
+    columns = dataset['columns']
+
 
 def _test_load_large_dataset_with_benchmark():
     """notes for later: ignore me"""

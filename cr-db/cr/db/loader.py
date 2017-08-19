@@ -3,6 +3,7 @@ import os
 import json
 import sys
 
+from cr.db.rules import get_converter_funcs
 from cr.db.store import global_settings, connect
 
 def load_data(filename, settings=None, clear=None):
@@ -39,12 +40,10 @@ def load_dataset(csv_filename, db):
                 headers[i] = last_header
 
         columns = [[] for _ in headers]
+        converter_funcs = get_converter_funcs(headers)
         for r, row in enumerate(csv_data):
             for i, data in enumerate(row):
-                if data:
-                    columns[i].append(str(data))
-                else:
-                    columns[i].append(None)
+                columns[i].append(converter_funcs[i](data))
 
         data = {'headers': headers,
                 'columns': columns,

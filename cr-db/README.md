@@ -109,29 +109,50 @@ not individual values nor columns.
 sense to store the raw data in mongo?  What other strategies would you
 employ if you had 1000s of datasets with 1 million rows per dataset?
 
-I would not store the raw data in mongo. My understanding is that mongo has
-a 16MB document size limit, and I'm assuming that 1 million rows in a
-dataset would easily exceed that limit.
+I would not store the raw data in mongo. Mongo has a 16MB document size
+limit. 1 million rows in a dataset would easily exceed that limit.
 
 Given my assumptions above, I would not store the data in a relational
-database. If there were complex interlinkages between data in the columns or
-between the datasets, and if you had to be able to change any item in an row
-at any time while still returning consistent query results to multiple
-readers, then that's when I'd go with a relational database.
+database. I would only use a relation database if:
 
-Instead, I would consider using mongo as a data catalog, and maybe as a
-locking system to handle multiple clients uploading and deleting datasets at
-the same time. The mongo database would contain pointers to the real dataset
-locations.
+- There were complex interlinkages between data in the columns or between
+  the datasets
+- We have to be able to change any item in an row at any time while still
+  returning consistent query results to multiple readers
 
-Given my assumptions above (datasets are immutable, all data values in a
-column are the same type or ``None``), this is the kind of thing that SAS
-datasets were designed for. Not that I would wish SAS *software* on anyone,
-but something conceptually similar for the dataset file format. If you can
-assume that all data items in a given column are of the same type, you can
-have fixed-width column representation, and that in turn can make it very
-efficient to index column values, chunk values for streaming, marshall to
-Python data types in bulk, etc.
+I would consider using mongo as a data catalog and management system handle
+multiple clients uploading and deleting datasets at the same time. The mongo
+database would contain pointers to the real dataset locations.
+
+For storing the raw, un-cleansed datasets, I would store them just as a file
+in either object storage like S3 or an NFS-like filesytem.
+
+For cleansed datasets where column values have been normalized, this is the
+kind of thing that the SAS dataset file format was designed for. Not that I
+would wish SAS *software* on anyone! But the file format (at least the
+version I was familar with) has fixed-width column storage. Fixed-width
+columns in binary format can make it very efficient to index column values,
+chunk values for streaming, quickly marshall to Python data types, etc.
+
+When googling "Mongo BSON document too large" I ran across
+[GridFS](https://docs.mongodb.com/manual/core/gridfs/):
+
+> GridFS is a specification for storing and retrieving files that exceed the
+> BSON-document size limit of 16 MB.
+
+> Instead of storing a file in a single document, GridFS divides the file
+> into parts, or chunks [1], and stores each chunk as a separate document.
+> By default, GridFS uses a chunk size of 255 kB; that is, GridFS divides a
+> file into chunks of 255 kB with the exception of the last chunk. The last
+> chunk is only as large as necessary. Similarly, files that are no larger
+> than the chunk size only have a final chunk, using only as much space as
+> needed plus some additional metadata.
+
+GridFS basically lets you use your mongo cluster as a file server. However,
+I'm still not sure if about putting *all* of the eggs in the mongo basket.
+It could be an advantage to let applications access datasets as files or
+HTTP streams without going through the mongo server nor using a mongo client
+driver.
 
 ## ``test_select_with_filter``
 
