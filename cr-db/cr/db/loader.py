@@ -26,7 +26,7 @@ def load_data(filename, settings=None, clear=None):
             collection.insert(obj)
 
 
-def load_dataset(csv_filename, db):
+def load_dataset_to_dict(csv_filename):
     with file(csv_filename, 'rU') as csv_file:
         csv_data = csv.reader(csv_file)
         headers = csv_data.next()
@@ -48,5 +48,9 @@ def load_dataset(csv_filename, db):
         data = {'headers': headers,
                 'columns': columns,
                 }
+        return data
 
-        return db.datasets.insert(data)
+
+def load_dataset(csv_filename, db):
+    data = load_dataset_to_dict(csv_filename)
+    return db.datasets.insert(data)

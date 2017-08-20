@@ -1,13 +1,16 @@
 """
 Helper functions, runnable as a script
 """
+from __future__ import print_function
 from collections import defaultdict
 import csv
 import json
 import sys
 
+import bson
 from bson.objectid import ObjectId
 
+from cr.db.loader import load_dataset_to_dict
 from cr.db.store import global_settings as settings
 from cr.db.store import connect
 
@@ -31,7 +34,7 @@ def get_dataset(dataset_id=None):
     return db.datasets.find(dataset_query)[0]
 
 
-def scan_dataset(dataset_id=None):
+def get_dataset_unique_values(dataset_id=None):
     """
     Scan the values in a dataset and count up unique values.
     dataset_id:
@@ -50,6 +53,40 @@ def scan_dataset(dataset_id=None):
     return result
 
 
+def scan_dataset(dataset_id=None):
+    """
+    Scan a dataset, print report of data character counts to stdout
+    The objective is to look for low-hanging fruit opportunities to further
+    compress the data by normalizing more category strings into integers.
+    """
+    value_count_map = get_dataset_unique_values(dataset_id)
+    char_count_by_header = {}  # { header: char_count }
+    for header in sorted(value_count_map):
+        char_count = 0
+        for value in sorted(value_count_map[header]):
+            value_count = value_count_map[header][value]
+            if isinstance(value, basestring):
+                char_count += value_count * len(value)
+        if char_count > 0:
+            char_count_by_header[header] = char_count
+
+    headers_by_char_count = defaultdict(list)  # { char_count: [ header, ... ] }
+    for header, char_count in char_count_by_header.iteritems():
+        headers_by_char_count[char_count].append(header)
+    for char_count in sorted(headers_by_char_count, reverse=True):
+        print("{} chars: {}".format(char_count, headers_by_char_count[char_count]))
+
+
+def calc_dataset_size(csv_filename):
+    """
+    Given a CSV file, estimate the Mongo document size using the bson
+    module. This is to see if we will fit under the 16MB Mongo limit.
+    """
+    data = load_dataset_to_dict(csv_filename)
+    b = bson.BSON(data)
+    return len(b)
+
+
 def scan_csv_cols(csv_filename):
     """
     Scan the values in a CSV file with headers and count up unique values.
@@ -65,6 +102,28 @@ def scan_csv_cols(csv_filename):
         for row in csv_reader:
             for i, header in enumerate(headers):
                 result[header][row[i]] += 1
+    return result
+
+
+def gen_lang_bitmap(csv_filename):
+    """
+    Scan the values in the WantWorkLanguage column of the CSV file and
+    generate a map of choices to integers that are even powers of 2, for
+    encoding the selection set efficiently as a bitmap in a single
+    (potentially large) integer.
+    """
+    language_set = set()
+    with open(csv_filename, 'rU') as f:
+        csv_reader = csv.reader(f)
+        headers = csv_reader.next()
+        lang_index = headers.index('WantWorkLanguage')
+        for row in csv_reader:
+            value = row[lang_index]
+            languages = [lang.strip() for lang in value.split(';')]
+            language_set.update(languages)
+    result = {}
+    for i, language in enumerate(sorted(language_set)):
+        result[language] = 2**i
     return result
 
 

@@ -4,8 +4,16 @@ Test Module for the crunch persistence.
 hint: we use py.test.
 """
 
+from itertools import izip
 import os
+
+import matplotlib
+matplotlib.use('agg')
+import matplotlib.pyplot as plt
+import numpy as np
+
 from cr.db.loader import load_data, load_dataset
+from cr.db.rules import BitmappedSetColumn, CATEGORY_GENDER
 from cr.db.store import global_settings as settings
 from cr.db.store import connect
 
@@ -18,7 +26,7 @@ def test_loader():
     """
     Is this the most efficient way that we could load users?  What if the file had 1m users?
     How would/could you benchmark this?
-    -> See my anwers in README.md
+    -> See my answers in README.md
     """
 
     load_data(_here + '/data/users.json', settings=settings, clear=True)
@@ -31,6 +39,9 @@ def test_load_dataset():
     #if not os.path.exists(csv_filename):
     #    with zipfile.ZipFile(data_filename, 'r') as zipref:
     #        zipref.extractall(_here + '/data')
+
+    # First clear previous test dataset(s)
+    db.datasets.drop()
 
     csv_filename = _here + '/data/S-O-1k.csv'
 
@@ -70,16 +81,37 @@ def test_load_dataset():
             # All None values - I guess that is Ok
             # Go check the next column
             continue
-        assert all(type(item) == column_type or item is None for item in column)
+        # Treat int and long as equivalent (not a problem on Python 3)
+        if issubclass(column_type, (int, long)):
+            column_type = (int, long)
+        assert all(isinstance(item, column_type) or item is None for item in column)
 
     # the columns aren't terribly useful.  Modify load_dataset to load common responses as integers so we can
     #   do data manipulation.  For instance, you could change the gender column to male = 0 female = 1 (or something)
 
     # you _should_ be able to save S-O-10k if you convert booleans to boolean and use integers for categories.
+    # -> See my comments in README.md about what happened when I took this
+    # at face value. Spoiler alert: It couldn't be done. But I tried anyway.
 
     # how would you manage a much larger dataset?  Does it make sense to store the raw data
     #   in mongo?  What other strategies would you employ if you had 1000s of datasets with 1 million rows per dataset?
     # -> See my answers in README.md
+
+
+def test_bitmapped_set_column():
+    column = BitmappedSetColumn([
+        # Order is super important!
+        "Apple",        # 1
+        "Banana",       # 2
+        "Cucumber",     # 4
+        "Pear",         # 8
+    ])
+    assert column('Apple') == 1
+    assert column('Banana; Pear') == 10
+    assert column('Apple; Cucumber; Pear') == 13
+    assert column.to_str(1) == 'Apple'
+    assert column.to_str(10) == 'Banana; Pear'
+    assert column.to_str(13) == 'Apple; Cucumber; Pear'
 
 
 def test_select_with_filter():
@@ -97,14 +129,44 @@ def test_select_with_filter():
     # First clear previous test dataset(s)
     db.datasets.drop()
 
-    # Load and save S-0-10k
-    csv_filename = _here + '/data/S-O-10k.csv'
+    # Load and save S-0-5k
+    csv_filename = _here + '/data/S-O-5k.csv'
 
     ds_id = load_dataset(csv_filename, db)
 
     dataset = db.datasets.find({'_id': ds_id})[0]
     headers = dataset['headers']
     columns = dataset['columns']
+
+    gender_col = columns[headers.index('Combined Gender')]
+    salary_col = columns[headers.index('SalaryAdjusted')]
+    education_col = columns[headers.index('FormalEducation')]
+    female_code = CATEGORY_GENDER('female')
+    assert female_code is not None
+
+    def _generate_data():
+        for gender, salary, education in izip(gender_col,
+                                              salary_col,
+                                              education_col):
+            if gender != female_code:
+                continue
+            yield education, salary
+
+    count = gender_col.count(female_code)
+    data_array = np.fromiter(
+        _generate_data(),
+        dtype=[('education', 'i4'), ('salary', 'f8')],
+        count=count,
+    )
+
+    fig = plt.figure()
+    #ax = fig.add_subplot(nrows=1, ncols=1, axnum=1)
+    ax = fig.add_axes([0.0, 0.0, 1.0, 1.0])
+    ax.set_title("Female Developers Salary by Formal Education")
+    ax.set_xlabel("Formal Education")
+    ax.set_ylabel("Adjusted Salary")
+    ax.plot(data_array)
+    fig.savefig('test_select_with_filter.png')
 
 
 def _test_load_large_dataset_with_benchmark():

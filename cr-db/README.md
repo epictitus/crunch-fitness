@@ -154,6 +154,44 @@ It could be an advantage to let applications access datasets as files or
 HTTP streams without going through the mongo server nor using a mongo client
 driver.
 
+**Issues**: I perhaps mistakenly took this statement in the test comments at
+face value:
+
+    # you _should_ be able to save S-O-10k if you convert booleans to boolean and use integers for categories.
+
+So I tried to make sure I could load 10k rows. My assumption was that this
+was needed for the next step, ``test_select_with_filter``, to get enough
+usable values (since there are so few female programmers.)
+
+However, there were several problems with loading the S-O-10k.csv file:
+
+-   S-O-10k.csv has no header row. I created S-O-10k-with-headers.csv from
+    the first 10000 rows in Stack-Overflow-Developer-Survey-2017.csv to
+    remedy that problem.
+
+-   The math doesn't really work out. Consider that there are 415 columns
+    and 10000 rows, that results in 4.15M cells. That gives us only an
+    average of 4.04 bytes per cell to make the 16M limit. That's pretty
+    harsh.
+  
+    But, I rationalized, if all the categories are converted to integers,
+    and Mongo economizes on storage of null and boolean and small integers,
+    I figured it could be possible. Barely. So I persisted in converting all
+    category values to enumerated integers.
+
+-   However, things broke down when I got to the ``WantWorkLanguage``
+    column.  It is a set of programming languages, represented in the CSV
+    file as nasty long strings of semicolon-separated values; pretty much
+    unique for each programmer. Feeling really committed at this point, I
+    handled this column as a set encoded with a bitmapped integer
+    (implemented with ``BitmappedSetColumn``, with unit tests.)
+
+-   Even after all my hard work of converting literally *every* cell from a
+    string to numeric representation, I still couldn't make it under the 16M
+    limit. My final calculated dataset size (see ``calc_dataset_size()`` in
+    the ``cr.db.helper`` modules) was 25581143 bytes, still 1.52 times the
+    16MB limit. I hope I get points for effort here!
+
 ## ``test_select_with_filter``
 
 Answer but don't code: what would a generic solution look like to compare
