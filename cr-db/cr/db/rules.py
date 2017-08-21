@@ -91,7 +91,7 @@ class BitmappedSetColumn(ColumnType):
         items = [item.strip() for item in value.split(';')]
         result = 0
         for item in items:
-            result += self.set_spec.get(item, 0)
+            result |= self.set_spec.get(item, 0)
         return result
 
     def to_str(self, encoded_value):
