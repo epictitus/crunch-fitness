@@ -36,11 +36,12 @@ class CategoryColumn(ColumnType):
         assert len(self.category_map) == len(self.value_map)
 
     def __call__(self, value):
+        """Convert a string value to an encoded integer."""
         return self.category_map.get(value.lower())
 
-    def values(self):
-        """Return string category values in mapped numerical order"""
-        return [self.value_map[v] for v in sorted(self.value_map)]
+    def __getitem__(self, index):
+        """Attempt to re-create the original string from an encoded integer."""
+        return self.value_map.get(index)
 
 
 class EnumColumn(CategoryColumn):
@@ -94,7 +95,7 @@ class BitmappedSetColumn(ColumnType):
             result |= self.set_spec.get(item, 0)
         return result
 
-    def to_str(self, encoded_value):
+    def __getitem__(self, encoded_value):
         """Attempt to re-create the original string from an encoded value."""
         result = []
         for item, bitmask in self.set_spec.iteritems():
@@ -246,8 +247,8 @@ CATEGORY_FORMAL_EDUCATION = CategoryColumn({
     "Some college/university study without earning a bachelor's degree": 4,
     "Bachelor's degree": 5,
     "Master's degree": 6,
-    "Doctoral degree": 7,
-    "Professional degree": 8,
+    "Professional degree": 7,
+    "Doctoral degree": 8,
 })
 
 CATEGORY_EMPLOYMENT_STATUS = CategoryColumn({

@@ -115,7 +115,7 @@ I would not store the raw data in mongo. Mongo has a 16MB document size
 limit. 1 million rows in a dataset would easily exceed that limit.
 
 Given my assumptions above, I would not store the data in a relational
-database. I would only use a relation database if:
+database. I would only use a relational database if:
 
 - There were complex interlinkages between data in the columns or between
   the datasets
@@ -158,8 +158,9 @@ It could be an advantage to let applications access datasets as files or
 HTTP streams without going through the mongo server nor using a mongo client
 driver.
 
-**Issues**: I perhaps mistakenly took this statement in the test comments at
-face value:
+**Issues**
+
+I perhaps mistakenly took this statement in the test comments at face value:
 
     # you _should_ be able to save S-O-10k if you convert booleans to boolean and use integers for categories.
 
@@ -201,7 +202,7 @@ However, there were several problems with loading the S-O-10k.csv file:
     string to numeric representation, I still couldn't make it under the 16M
     limit. My final calculated dataset size (see ``calc_dataset_size()`` in
     the ``cr.db.helper`` modules) was 25581143 bytes, still 1.52 times the
-    16MB limit. I hope I get points for effort here!
+    16MB limit.
 
 ## ``test_select_with_filter``
 
@@ -211,6 +212,14 @@ I took the first 5000 lines from Stack-Overflow-Developer-Survey-2017.csv to
 create S-O-5k.csv for my sample. There were 151 female developers in the
 dataset, 52 of whom reported their salaries.
 
+I create an graph with the x-axis being the formal education level
+categories, labeled. The y-axis is adjusted salary. I plot each salary
+datapoint as a red dot, then draw a blue line through the mean salaries.
+
+The graph is saved to a PNG file because I didn't want to worry about
+whether the user has a working matplotlib graphics backend configured. Plus
+tests should be able to run headless.
+
 After running ``pytest``, please see the output report in
 [female-developers-salary-by-education.png](female-developers-salary-by-education.png).
 
@@ -218,3 +227,23 @@ After running ``pytest``, please see the output report in
 
 > Answer but don't code: what would a generic solution look like to compare
 > any columns containing categories?
+
+I would first factor the ad-hoc code for comparing and graphing education
+vs. salary into a separate function.
+
+The first parameter would be pre-filtered numpy record array, the same as I
+what I created with my filtering code. The function could make an assumption
+that the first column in the record array is the x-axis category values, and
+the second column is the y-axis scalar values.
+
+The second parameter would be CategoryColumn instance, replacing the
+reference to ``CATEGORY_FORMAL_EDUCATION`` in the ad-hoc code.
+
+There would be an output filename parameter, and parameters for title and
+x-axis and y-axis labels.
+
+I would write a test to exercise the function, and at least check that it
+runs without crashing and produces some graphical output.
+
+There are probably more details that would come up in the course of
+refactoring, but I think those are the highlights.

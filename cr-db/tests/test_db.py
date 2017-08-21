@@ -5,8 +5,10 @@ hint: we use py.test.
 """
 from __future__ import print_function
 
-from itertools import izip
+import itertools
+import operator
 import os
+import textwrap
 
 import matplotlib
 matplotlib.use('agg')
@@ -14,7 +16,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from cr.db.loader import load_data, load_dataset
-from cr.db.rules import BitmappedSetColumn, CATEGORY_GENDER
+from cr.db.rules import (
+    BitmappedSetColumn,
+    CATEGORY_FORMAL_EDUCATION,
+    CATEGORY_GENDER,
+)
 from cr.db.store import global_settings as settings
 from cr.db.store import connect
 
@@ -110,9 +116,9 @@ def test_bitmapped_set_column():
     assert column('Apple') == 1
     assert column('Banana; Pear') == 10
     assert column('Apple; Cucumber; Pear') == 13
-    assert column.to_str(1) == 'Apple'
-    assert column.to_str(10) == 'Banana; Pear'
-    assert column.to_str(13) == 'Apple; Cucumber; Pear'
+    assert column[1] == 'Apple'
+    assert column[10] == 'Banana; Pear'
+    assert column[13] == 'Apple; Cucumber; Pear'
 
 
 def test_select_with_filter():
@@ -146,9 +152,9 @@ def test_select_with_filter():
     assert female_code is not None
 
     def _generate_data():
-        for gender, salary, education in izip(gender_col,
-                                              salary_col,
-                                              education_col):
+        for gender, salary, education in itertools.izip(gender_col,
+                                                        salary_col,
+                                                        education_col):
             if gender != female_code:
                 continue
             if salary is None:
@@ -160,15 +166,43 @@ def test_select_with_filter():
         _generate_data(),
         dtype=[('education', 'i4'), ('salary', 'f8')],
     ), copy=False)
+    data_array.sort()
+    # Sanity check
     print(len(data_array), "female developers reported salary.")
+    assert len(data_array) > 0
 
+    # Generate labels
+    x_range = np.arange(data_array.education.min(), data_array.education.max() + 1)
+    x_lowest = x_range[0]
+    x_highest = x_range[-1]
+    labels = [CATEGORY_FORMAL_EDUCATION[i]
+              for i in xrange(x_lowest, x_highest + 1)]
+    x_labels = ['\n'.join(textwrap.wrap(label, width=25)) for label in labels]
+    x_labels.insert(0, '')  # required by matplotlib, I don't know why
+
+    # Rebase x values on zero so bincount will work properly
+    x_range -= x_lowest
+    data_array.education -= x_lowest
+
+    # Compute mean salaries
+    salary_mean = []
+    i = 0
+    for count in np.bincount(data_array.education):
+        salary_mean.append(data_array.salary[i:i+count].mean())
+        i += count
+
+    # Plot the data
     fig = plt.figure(figsize=(10.24, 7.68), dpi=100)
     nrows, ncols, axnum = 1, 1, 1
     ax = fig.add_subplot(nrows, ncols, axnum)
     ax.set_title("Female Developers Salary by Formal Education")
     ax.set_xlabel("Formal Education")
     ax.set_ylabel("Adjusted Salary")
-    ax.scatter(data_array.education, data_array.salary)
+    ax.plot(data_array.education, data_array.salary, 'ro')
+    ax.plot(x_range, salary_mean)
+    ax.set_xticklabels(x_labels, rotation='vertical')
+    # Tweak spacing to prevent clipping of tick-labels
+    fig.subplots_adjust(bottom=0.30)
     report_filename = 'female-developers-salary-by-education.png'
     print("Saving report output to", report_filename)
     fig.savefig(report_filename)
