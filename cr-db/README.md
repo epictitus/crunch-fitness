@@ -231,12 +231,12 @@ After running ``pytest``, please see the output report in
 I would first factor the ad-hoc code for comparing and graphing education
 vs. salary into a separate function.
 
-The first parameter would be pre-filtered numpy record array, the same as I
+The first parameter would be a pre-filtered numpy record array, the same as I
 what I created with my filtering code. The function could make an assumption
 that the first column in the record array is the x-axis category values, and
 the second column is the y-axis scalar values.
 
-The second parameter would be CategoryColumn instance, replacing the
+The second parameter would be a CategoryColumn instance, replacing the
 reference to ``CATEGORY_FORMAL_EDUCATION`` in the ad-hoc code.
 
 There would be an output filename parameter, and parameters for title and
