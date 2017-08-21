@@ -91,7 +91,7 @@ Implementation Details and Assumptions
 Looking at ``load_dataset()``, the definition of a dataset appears to be:
 
 - List of headers
-- Each header is a string or ``None``
+- Each header is a string
 - List of columns, one per header
 - Each column is an array of values
 - Each column in the dataset has the same number of values

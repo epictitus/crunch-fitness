@@ -65,8 +65,7 @@ def test_load_dataset():
     assert len(headers) > 0
 
     # Each header is a string or None
-    assert all(isinstance(header, basestring) or header is None
-               for header in headers)
+    assert all(isinstance(header, basestring) for header in headers)
 
     # There is exactly one column per header
     assert len(headers) == len(columns)
