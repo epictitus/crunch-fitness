@@ -3,6 +3,7 @@ Test Module for the crunch persistence.
 
 hint: we use py.test.
 """
+from __future__ import print_function
 
 from itertools import izip
 import os
@@ -150,23 +151,28 @@ def test_select_with_filter():
                                               education_col):
             if gender != female_code:
                 continue
+            if salary is None:
+                continue
             yield education, salary
 
-    count = gender_col.count(female_code)
-    data_array = np.fromiter(
+    print(gender_col.count(female_code), "female developers in the dataset.")
+    data_array = np.rec.array(np.fromiter(
         _generate_data(),
         dtype=[('education', 'i4'), ('salary', 'f8')],
-        count=count,
-    )
+    ), copy=False)
+    print(len(data_array), "female developers reported salary.")
 
-    fig = plt.figure()
-    #ax = fig.add_subplot(nrows=1, ncols=1, axnum=1)
-    ax = fig.add_axes([0.0, 0.0, 1.0, 1.0])
+    fig = plt.figure(figsize=(10.24, 7.68), dpi=100)
+    nrows, ncols, axnum = 1, 1, 1
+    ax = fig.add_subplot(nrows, ncols, axnum)
     ax.set_title("Female Developers Salary by Formal Education")
     ax.set_xlabel("Formal Education")
     ax.set_ylabel("Adjusted Salary")
-    ax.plot(data_array)
-    fig.savefig('test_select_with_filter.png')
+    ax.scatter(data_array.education, data_array.salary)
+    report_filename = 'female-developers-salary-by-education.png'
+    print("Saving report output to", report_filename)
+    fig.savefig(report_filename)
+    plt.close(fig)
 
 
 def _test_load_large_dataset_with_benchmark():
