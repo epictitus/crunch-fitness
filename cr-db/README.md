@@ -132,11 +132,12 @@ in either object storage like S3 or an NFS-like filesytem.
 
 For cleansed datasets where column values have been normalized, it occurred
 to me that this is the kind of thing that the SAS dataset file format was
-designed for. (To be clear, I'm not recommending you use SAS *software*.)
-The file format (at least the version I was familar with) has fixed-width
-column storage. Fixed-width columns in binary format can make it very
-efficient to index column values, chunk values for streaming, quickly
-marshall to Python data types, etc.
+designed for. (To be clear, I'm not recommending you use SAS *software*, but
+rather use a file format that has similar advantages to SAS datasets.) The
+SAS file format I was most familar with has fixed-width column storage.
+Fixed-width columns in binary format can make it very efficient to index
+column values, chunk values for streaming, quickly marshall to Python data
+types, etc.
 
 When googling "Mongo BSON document too large" I ran across
 [GridFS](https://docs.mongodb.com/manual/core/gridfs/):
