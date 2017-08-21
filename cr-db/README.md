@@ -213,7 +213,7 @@ I took the first 5000 lines from Stack-Overflow-Developer-Survey-2017.csv to
 create S-O-5k.csv for my sample. There were 151 female developers in the
 dataset, 52 of whom reported their salaries.
 
-I create an graph with the x-axis being the formal education level
+I create a graph with the x-axis being the formal education level
 categories, labeled. The y-axis is adjusted salary. I plot each salary
 datapoint as a red dot, then draw a blue line through the mean salaries.
 
@@ -222,7 +222,9 @@ whether the user has a working matplotlib graphics backend configured. Plus
 tests should be able to run headless.
 
 After running ``pytest``, please see the output report in
-[female-developers-salary-by-education.png](female-developers-salary-by-education.png).
+female-developers-salary-by-education.png. Or follow [this
+link](female-developers-salary-by-education.png) to see the output that I
+pushed to git.
 
 **Question**
 
