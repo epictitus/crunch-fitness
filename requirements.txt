@@ -1,0 +1,7 @@
+-e cr-db
+-e cr-api
+ipython
+pytest
+numpy
+markdown
+matplotlib
